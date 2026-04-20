@@ -9,7 +9,6 @@
 #include "AAObjectValidatorArchive.h"
 #include "AASerializationHelpers.h"
 #include "Buildables/FGBuildableConveyorBase.h"
-#include "FGColoredInstanceMeshProxy.h"
 #include "FGFactorySettings.h"
 #include "GameFramework/Actor.h"
 #include "FGCircuitConnectionComponent.h"
@@ -17,7 +16,6 @@
 #include "FGPipeConnectionComponent.h"
 #include "TopologicalSort/TopologicalSort.h"
 #include "FGGameState.h"
-#include "FGProductionIndicatorInstanceComponent.h"
 
 UAACopyBuildingsComponent::UAACopyBuildingsComponent()
 {
@@ -291,22 +289,28 @@ bool UAACopyBuildingsComponent::Finish(const TArray<UFGInventoryComponent*> Inve
         FCopyMap CurrentCopy;
         for(UObject* Object : this->Original)
         {
-            UObject* NewObj;
+            UObject* NewObj = nullptr;
             if(AActor* Actor = Cast<AActor>(Object))
             {
                 FTransform NewTransform = TransformAroundPoint(Actor->GetActorTransform(), CopyLocation.Relative ? BuildingsBounds.Rotation.RotateVector(CopyLocation.Offset) : CopyLocation.Offset, CopyLocation.Rotation, CopyLocation.RotationCenter);
-                FActorSpawnParameters Params;
-                Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-                Params.bDeferConstruction = true;
-                Params.Owner = Actor->GetOwner();
-                AActor* NewActor;
+                AActor* NewActor = nullptr;
                 if(AFGBuildable* Buildable = Cast<AFGBuildable>(Actor))
+                {
                     NewActor = AFGBuildableSubsystem::Get(GetWorld())->BeginSpawnBuildable(Buildable->GetClass(), NewTransform);
+                }
                 else
+                {
+                    FActorSpawnParameters Params;
+                    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+                    Params.bDeferConstruction = true;
+                    Params.Owner = Actor->GetOwner();
                     NewActor = this->GetWorld()->SpawnActor<AActor>(Actor->GetClass(), NewTransform, Params);
-                NewActor->bDeferBeginPlay = true;
-                NewActor->FinishSpawning(FTransform::Identity, true);
-                NewObj = NewActor;
+                }
+                if(NewActor)
+                {
+                    NewActor->FinishSpawning(NewActor->GetActorTransform(), true);
+                    NewObj = NewActor;
+                }
             }
             else
             {
@@ -318,7 +322,8 @@ bool UAACopyBuildingsComponent::Finish(const TArray<UFGInventoryComponent*> Inve
                 if(!NewObj)
                     NewObj = NewObject<UObject>(CurrentCopy.GetObjectChecked(Object->GetOuter()), Object->GetClass(), FName(*Object->GetName()), Object->GetFlags());
             }
-            CurrentCopy.AddObject(Object, NewObj);
+            if(NewObj)
+                CurrentCopy.AddObject(Object, NewObj);
         }
     
         this->FixReferencesForCopy(CurrentCopy);
@@ -328,7 +333,8 @@ bool UAACopyBuildingsComponent::Finish(const TArray<UFGInventoryComponent*> Inve
             UObject* NewObject = CurrentCopy.GetObject(Object);
             if(AActor* NewActor = Cast<AActor>(NewObject))
             {
-                NewActor->DeferredBeginPlay();
+                if(!NewActor->HasActorBegunPlay())
+                    NewActor->DispatchBeginPlay();
             }
         }
 

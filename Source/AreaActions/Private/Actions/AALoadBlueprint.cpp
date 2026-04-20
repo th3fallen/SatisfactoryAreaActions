@@ -1,4 +1,4 @@
-﻿#include "Actions/AALoadBlueprint.h"
+#include "Actions/AALoadBlueprint.h"
 
 #include "AABlueprint.h"
 #include "AABlueprintFunctionLibrary.h"
@@ -68,9 +68,12 @@ void AAALoadBlueprint::PrimaryFire()
 		FHitResult HitResult;
 		TArray<AFGBuildableHologram*> PreviewHolograms;
 		BlueprintPlacingComponent->GetAllPreviewHolograms(PreviewHolograms);
-		if(AreaActionsComponent->RaycastMouseWithRange(HitResult, true, true, true) && PreviewHolograms.Contains(HitResult.Actor))
+		AActor* HitActor = nullptr;
+		if(AreaActionsComponent->RaycastMouseWithRange(HitResult, true, true, true))
+			HitActor = HitResult.GetActor();
+		if(HitActor && PreviewHolograms.Contains(Cast<AFGBuildableHologram>(HitActor)))
 		{
-			AnchorIdx = BlueprintPlacingComponent->GetHologramObjectIdx(static_cast<AFGBuildableHologram*>(HitResult.Actor.Get()));
+			AnchorIdx = BlueprintPlacingComponent->GetHologramObjectIdx(static_cast<AFGBuildableHologram*>(HitActor));
 		}
 		else
 		{

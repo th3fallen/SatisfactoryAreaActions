@@ -1,9 +1,10 @@
-﻿#include "AAAreaActionsComponent.h"
+#include "AAAreaActionsComponent.h"
 
 #include "AASelectionActor.h"
 #include "Equipment/FGBuildGun.h"
 #include "FGLocalPlayer.h"
 #include "Buildables/FGBuildable.h"
+#include "FGBuildableSubsystem.h"
 #include "FGOutlineComponent.h"
 #include "FGPlayerController.h"
 #include "Actions/AALoadBlueprint.h"
@@ -372,9 +373,27 @@ bool IsActorInArea(AActor* Actor, TArray<FVector2D>& Corners, const float MinZ, 
 }
 
 void UAAAreaActionsComponent::GetAllActorsInArea(TArray<AActor*>& OutActors) {
-	for (TActorIterator<AFGBuildable> ActorIt(GetWorld()); ActorIt; ++ActorIt) {
-		if (IsActorInArea(*ActorIt, this->AreaCorners, this->AreaMinZ, this->AreaMaxZ)) {
-			OutActors.Add(*ActorIt);
+	AFGBuildableSubsystem* BuildableSubsystem = AFGBuildableSubsystem::Get(GetWorld());
+	if (BuildableSubsystem)
+	{
+		TArray<AFGBuildable*> AllBuildables;
+		BuildableSubsystem->GetTypedBuildable(AllBuildables);
+		for (AFGBuildable* Buildable : AllBuildables)
+		{
+			if (IsActorInArea(Buildable, this->AreaCorners, this->AreaMinZ, this->AreaMaxZ))
+			{
+				OutActors.Add(Buildable);
+			}
+		}
+	}
+	else
+	{
+		for (TActorIterator<AFGBuildable> ActorIt(GetWorld()); ActorIt; ++ActorIt)
+		{
+			if (IsActorInArea(*ActorIt, this->AreaCorners, this->AreaMinZ, this->AreaMaxZ))
+			{
+				OutActors.Add(*ActorIt);
+			}
 		}
 	}
 }
@@ -402,11 +421,13 @@ void UAAAreaActionsComponent::HideBuildMenu()
 
 void UAAAreaActionsComponent::ShowBuildMenu()
 {
-	if(!GetPlayerCharacter()->GetBuildGun()->GetInstigator())
+	AFGBuildGun* BuildGun = GetPlayerCharacter()->GetBuildGun();
+	if(!BuildGun->GetInstigator())
 		GetPlayerCharacter()->ToggleBuildGun();
-	if(GetPlayerCharacter()->GetBuildGun()->mCurrentStateEnum != EBuildGunState::BGS_MENU)
-		GetPlayerCharacter()->GetBuildGun()->GotoMenuState();
-	UFGBuildGunState* MenuState = GetPlayerCharacter()->GetBuildGun()->GetBuildGunStateFor(EBuildGunState::BGS_MENU);
+	UFGBuildGunState* MenuState = BuildGun->GetBuildGunStateFor(EBuildGunState::BGS_MENU);
 	if(!MenuState->IsActive())
+	{
+		BuildGun->GotoMenuState();
 		MenuState->BeginState();
+	}
 }

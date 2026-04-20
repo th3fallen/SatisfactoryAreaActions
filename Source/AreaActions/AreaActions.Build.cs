@@ -13,6 +13,7 @@ public class AreaActions : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         bLegacyPublicIncludePaths = false;
+        CppStandard = CppStandardVersion.Cpp20;
 
         PrivatePCHHeaderFile = "Public/AreaActions.h";
         

@@ -22,8 +22,9 @@ void AAASelectionActor::PrimaryFire() {
 	switch (this->SelectionMode) {
 	case EAASelectionMode::SM_Corner:
 		if (AreaActionsComponent->RaycastMouseWithRange(HitResult, false, true, true)) {
-			if (HitResult.Actor->IsA<AAACornerIndicator>()) {
-				AAACornerIndicator* HitCorner = static_cast<AAACornerIndicator*>(HitResult.Actor.Get());
+			AActor* HitActor = HitResult.GetActor();
+			if (HitActor && HitActor->IsA<AAACornerIndicator>()) {
+				AAACornerIndicator* HitCorner = static_cast<AAACornerIndicator*>(HitActor);
 				const int CornerIdx = AreaActionsComponent->CornerIndicators.Find(HitCorner);
 				AreaActionsComponent->RemoveCorner(CornerIdx);
 			}
@@ -34,7 +35,8 @@ void AAASelectionActor::PrimaryFire() {
 		break;
 	case EAASelectionMode::SM_Bottom:
 		if (AreaActionsComponent->RaycastMouseWithRange(HitResult, false, true, false)) {
-			if (HitResult.Actor == AreaActionsComponent->BottomIndicator) {
+			AActor* HitActor = HitResult.GetActor();
+			if (HitActor == AreaActionsComponent->BottomIndicator) {
 				AreaActionsComponent->AreaMinZ = AreaActionsComponent->MinZ;
 			}
 			else {
@@ -50,7 +52,8 @@ void AAASelectionActor::PrimaryFire() {
 		break;
 	case EAASelectionMode::SM_Top:
 		if (AreaActionsComponent->RaycastMouseWithRange(HitResult, false, true, false)) {
-			if (HitResult.Actor == AreaActionsComponent->TopIndicator) {
+			AActor* HitActor = HitResult.GetActor();
+			if (HitActor == AreaActionsComponent->TopIndicator) {
 				AreaActionsComponent->AreaMaxZ = AreaActionsComponent->MaxZ;
 			}
 			else {
@@ -66,12 +69,13 @@ void AAASelectionActor::PrimaryFire() {
 		break;
 	case EAASelectionMode::SM_Building:
 		if (AreaActionsComponent->RaycastMouseWithRange(HitResult, true, true, true)) {
-			if (HitResult.Actor->IsA<AFGBuildable>()) {
-				if (AreaActionsComponent->ExtraActors.Contains(HitResult.Actor.Get())) {
-					AreaActionsComponent->ExtraActors.Remove(HitResult.Actor.Get());
+			AActor* HitActor = HitResult.GetActor();
+			if (HitActor && HitActor->IsA<AFGBuildable>()) {
+				if (AreaActionsComponent->ExtraActors.Contains(HitActor)) {
+					AreaActionsComponent->ExtraActors.Remove(HitActor);
 				}
 				else {
-					AreaActionsComponent->ExtraActors.Add(HitResult.Actor.Get());
+					AreaActionsComponent->ExtraActors.Add(HitActor);
 				}
 				AreaActionsComponent->UpdateExtraActors();
 			}

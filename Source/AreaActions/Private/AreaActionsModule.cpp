@@ -5,13 +5,14 @@
 #include "AABlueprintFunctionLibrary.h"
 
 DEFINE_LOG_CATEGORY(LogAreaActions);
-DEFINE_LOG_CATEGORY(LogGame);
 
 void FAreaActionsModule::StartupModule() {
 #if !WITH_EDITOR
 	AFGBuildGun* BuildGunCDO = GetMutableDefault<AFGBuildGun>();
 	SUBSCRIBE_METHOD_VIRTUAL_AFTER(AFGEquipment::BeginPlay, BuildGunCDO, [](AFGEquipment* Self)
 	{
+		if(!Self->IsA<AFGBuildGun>()) return;
+		if(Self->FindComponentByClass<UAAAreaActionsComponent>()) return;
 		UE_LOG(LogAreaActions, Display, TEXT("BuildGun BeginPlay"));
 		UAAAreaActionsComponent* AreaActionsComponent = NewObject<UAAAreaActionsComponent>(Self);
 		AreaActionsComponent->RegisterComponent();	 

@@ -5,6 +5,7 @@
 #include "Buildables/FGBuildable.h"
 #include "AAAreaActionsComponent.h"
 #include "FGCharacterPlayer.h"
+#include "FGDismantleInterface.h"
 #include "FGInventoryLibrary.h"
 
 
@@ -12,9 +13,12 @@ void AAAMassDismantle::Dismantle()
 {
     for (AActor* Actor : this->Actors)
     {
+        AFGBuildable* Buildable = Cast<AFGBuildable>(Actor);
+        if (!Buildable) continue;
+
         TArray<FInventoryStack> BuildingRefunds;
-        static_cast<AFGBuildable*>(Actor)->GetDismantleRefund_Implementation(BuildingRefunds);
-        static_cast<AFGBuildable*>(Actor)->Dismantle_Implementation();
+        IFGDismantleInterface::Execute_GetDismantleRefund(Buildable, BuildingRefunds, false);
+        IFGDismantleInterface::Execute_Dismantle(Buildable);
 
         this->Refunds.Append(BuildingRefunds);
     }

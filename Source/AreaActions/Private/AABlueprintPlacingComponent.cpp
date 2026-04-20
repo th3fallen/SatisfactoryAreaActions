@@ -9,7 +9,6 @@
 #include "AASerializationHelpers.h"
 #include "AreaActionsModule.h"
 #include "Buildables/FGBuildableConveyorBase.h"
-#include "FGColoredInstanceMeshProxy.h"
 #include "FGFactorySettings.h"
 #include "GameFramework/Actor.h"
 #include "FGCircuitConnectionComponent.h"
@@ -17,7 +16,6 @@
 #include "FGPipeConnectionComponent.h"
 #include "TopologicalSort/TopologicalSort.h"
 #include "FGGameState.h"
-#include "FGProductionIndicatorInstanceComponent.h"
 
 UAABlueprintPlacingComponent::UAABlueprintPlacingComponent()
 {
@@ -203,25 +201,28 @@ bool UAABlueprintPlacingComponent::Finish(TArray<UFGInventoryComponent*> Invento
         int32 ObjectIdx = 0;
         for(const auto& BuildingTOC : this->Blueprint->GetObjectTOC())
         {
-            UObject* NewObj;
+            UObject* NewObj = nullptr;
             if(BuildingTOC.Class->IsChildOf(AActor::StaticClass()))
             {
                 FTransform NewTransform = TransformAroundPoint(BuildingTOC.Transform, CopyLocation.Relative ? Blueprint->GetBoundingBox().Rotation.RotateVector(CopyLocation.Offset) : CopyLocation.Offset, CopyLocation.Rotation, CopyLocation.RotationCenter);
-                FActorSpawnParameters Params;
-                Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-                Params.bDeferConstruction = true;
-                // Params.Owner = BuildingTOC.Owner; // Must obtain after all objects are constructed
-                AActor* NewActor;
+                AActor* NewActor = nullptr;
                 if(BuildingTOC.Class->IsChildOf(AFGBuildable::StaticClass()))
                 {
                     const TSubclassOf<AFGBuildable> BuildableClass(BuildingTOC.Class);
                     NewActor = AFGBuildableSubsystem::Get(GetWorld())->BeginSpawnBuildable(BuildableClass, NewTransform);
                 }
                 else
+                {
+                    FActorSpawnParameters Params;
+                    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+                    Params.bDeferConstruction = true;
                     NewActor = this->GetWorld()->SpawnActor<AActor>(BuildingTOC.Class, NewTransform, Params);
-                NewActor->bDeferBeginPlay = true;
-                NewActor->FinishSpawning(FTransform::Identity, true);
-                NewObj = NewActor;
+                }
+                if(NewActor)
+                {
+                    NewActor->FinishSpawning(NewActor->GetActorTransform(), true);
+                    NewObj = NewActor;
+                }
             }
             else
             {
@@ -233,7 +234,8 @@ bool UAABlueprintPlacingComponent::Finish(TArray<UFGInventoryComponent*> Invento
                 if(!NewObj)
                     NewObj = NewObject<UObject>(Outer, BuildingTOC.Class, BuildingTOC.Name, BuildingTOC.Flags);
             }
-            CurrentCopy.AddObject(ObjectIdx, NewObj);
+            if(NewObj)
+                CurrentCopy.AddObject(ObjectIdx, NewObj);
             ObjectIdx++;
         }
     
@@ -243,7 +245,8 @@ bool UAABlueprintPlacingComponent::Finish(TArray<UFGInventoryComponent*> Invento
         {
             if(AActor* NewActor = Cast<AActor>(NewObject))
             {
-                NewActor->DeferredBeginPlay();
+                if(!NewActor->HasActorBegunPlay())
+                    NewActor->DispatchBeginPlay();
             }
         }
 

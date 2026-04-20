@@ -334,7 +334,7 @@ void UAAIntSpinBox::PostLoad()
 {
 	Super::PostLoad();
 
-	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	if ( GetLinkerUEVersion() < FPackageFileVersion::CreateUE4Version(VER_UE4_DEPRECATE_UMG_STYLE_ASSETS) )
 	{
 		if ( Style_DEPRECATED != nullptr )
 		{

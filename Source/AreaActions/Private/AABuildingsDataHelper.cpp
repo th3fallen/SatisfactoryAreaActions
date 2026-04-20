@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "AABuildingsDataHelper.h"
@@ -6,7 +6,6 @@
 #include "Buildables/FGBuildable.h"
 #include "Buildables/FGBuildableFactory.h"
 #include "Components/SplineMeshComponent.h"
-#include "FGClearanceComponent.h"
 
 FAARotatedBoundingBox FAABuildingsDataHelper::CalculateBoundingBox(const TArray<UObject*>& Objects)
 {
@@ -33,50 +32,19 @@ FAARotatedBoundingBox FAABuildingsDataHelper::CalculateBoundingBox(const TArray<
     for(UObject* Object : Objects)
         if(AFGBuildable* Buildable = Cast<AFGBuildable>(Object))
         {
-            if(UFGClearanceComponent* Clearance = Buildable->GetClearanceComponent())
-            {
-                if(UBoxComponent* Box = Cast<UBoxComponent>(Clearance))
-                {
-                    const FVector Extents = Box->GetScaledBoxExtent();
-                    for(int i = 0; i < (1 << 3); i++)
-                    {
-                        const int X = (i & 1) ? 1 : -1;
-                        const int Y = (i & 2) ? 1 : -1;
-                        const int Z = (i & 4) ? 1 : -1;
-                        FVector Corner = FVector(Extents.X * X, Extents.Y * Y, Extents.Z * Z);
-                        Min = Min.ComponentMin(Rotation.UnrotateVector(Buildable->GetActorRotation().RotateVector(Box->GetComponentTransform().GetLocation() + Corner - Buildable->GetActorLocation()) + Buildable->GetActorLocation()));
-                        Max = Max.ComponentMax(Rotation.UnrotateVector(Buildable->GetActorRotation().RotateVector(Box->GetComponentTransform().GetLocation() + Corner - Buildable->GetActorLocation()) + Buildable->GetActorLocation()));
-                    }
-                }
-                else
-                {
-                    // Are there any other types used as clearance?
-                }
-            }
-            else
-            {
-                FActorSpawnParameters Params;
-                Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-                Params.bDeferConstruction = true;
-                FTransform TempBuildingTransform = FTransform(FQuat::Identity, FVector::ZeroVector, Buildable->GetActorScale3D());
-                AFGBuildable* TempBuilding = Buildable->GetWorld()->SpawnActor<AFGBuildable>(Buildable->GetClass(), TempBuildingTransform, Params);
-                TempBuilding->bDeferBeginPlay = true;
-                TempBuilding->FinishSpawning(TempBuildingTransform, true);
-                FVector Origin;
-                FVector Extents;
-                TempBuilding->GetActorBounds(true, Origin, Extents);
-                Extents = FVector(FGenericPlatformMath::RoundToFloat(Extents.X), FGenericPlatformMath::RoundToFloat(Extents.Y), FGenericPlatformMath::RoundToFloat(Extents.Z));
+            FVector Origin;
+            FVector Extents;
+            Buildable->GetActorBounds(true, Origin, Extents);
+            Extents = FVector(FGenericPlatformMath::RoundToFloat(Extents.X), FGenericPlatformMath::RoundToFloat(Extents.Y), FGenericPlatformMath::RoundToFloat(Extents.Z));
 
-                for(int i = 0; i < (1 << 3); i++)
-                {
-                    const int X = (i & 1) ? 1 : -1;
-                    const int Y = (i & 2) ? 1 : -1;
-                    const int Z = (i & 4) ? 1 : -1;
-                    FVector Corner = FVector(Extents.X * X, Extents.Y * Y, Extents.Z * Z);
-                    Min = Min.ComponentMin(Rotation.UnrotateVector(Buildable->GetActorLocation() + Buildable->GetActorRotation().RotateVector(Origin + Corner)));
-                    Max = Max.ComponentMax(Rotation.UnrotateVector(Buildable->GetActorLocation() + Buildable->GetActorRotation().RotateVector(Origin + Corner)));
-                }
-                TempBuilding->Destroy();
+            for(int i = 0; i < (1 << 3); i++)
+            {
+                const int X = (i & 1) ? 1 : -1;
+                const int Y = (i & 2) ? 1 : -1;
+                const int Z = (i & 4) ? 1 : -1;
+                FVector Corner = FVector(Extents.X * X, Extents.Y * Y, Extents.Z * Z);
+                Min = Min.ComponentMin(Rotation.UnrotateVector(Origin + Corner));
+                Max = Max.ComponentMax(Rotation.UnrotateVector(Origin + Corner));
             }
         }
 

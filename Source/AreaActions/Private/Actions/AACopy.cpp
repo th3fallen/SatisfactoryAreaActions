@@ -69,13 +69,17 @@ void AAACopy::PrimaryFire()
 		CopyBuildingsComponent->GetBuildingHolograms(CurrentCopy, PreviewHolograms);
 		if(AreaActionsComponent->RaycastMouseWithRange(HitResult, true, true, true))
 		{
-			if(Actors.Contains(HitResult.Actor))
+			AActor* HitActor = HitResult.GetActor();
+			if(HitActor && Actors.Contains(HitActor))
 			{
-				Anchor = static_cast<AFGBuildable*>(HitResult.Actor.Get());
+				Anchor = Cast<AFGBuildable>(HitActor);
 			}
-			if(auto* Buildable = PreviewHolograms.FindKey(static_cast<AFGBuildableHologram*>(HitResult.Actor.Get())))
+			if(AFGBuildableHologram* HitHologram = Cast<AFGBuildableHologram>(HitActor))
 			{
-				Anchor = static_cast<AFGBuildable*>(*Buildable);
+				if(auto* Buildable = PreviewHolograms.FindKey(HitHologram))
+				{
+					Anchor = *Buildable;
+				}
 			}
 		}
 		else
